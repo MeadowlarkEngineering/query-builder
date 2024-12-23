@@ -13,8 +13,6 @@ from query_builder.postgres_config import PostgresConfig
 TABLE_COLUMN_CACHE = {}
 DATACLASS_CACHE = {}
 
-logging.basicConfig(level=logging.DEBUG)
-
 ColumnDefinition = namedtuple(
     "ColumnDefinition", ["name", "data_type", "is_nullable", "default"]
 )
