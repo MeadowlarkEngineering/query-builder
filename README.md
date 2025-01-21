@@ -71,5 +71,6 @@ Run the unit tests
 ```
 poetry run pytest
 ```
+You may need to set PGUSER, PGDATABASE, and PGPASSWORD environment variables to establish the connection
 
 Copyright 2024 - Meadowlark Engineering

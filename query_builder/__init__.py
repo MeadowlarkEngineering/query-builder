@@ -7,3 +7,4 @@ from .where import Where
 from .join import Join
 from .update import Update
 from .delete import Delete
+from .count import Count

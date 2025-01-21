@@ -43,6 +43,18 @@ class Select(SQLCommand):
         """Table name"""
         return self._table_name
 
+    def get_columns(self, table_name, pg_config):
+        """The columns to use building the query"""
+        columns = get_columns_composed(table_name, pg_config)
+
+        # Construct the join sql
+        join = self.get_join()
+        if join is not None:
+            for t in join.tables:
+                columns = columns + get_columns_composed(t, pg_config)
+        
+        return columns
+
     def join(self, join: Join | None = None, **kwargs):
         """
         Join another table
@@ -159,7 +171,6 @@ class Select(SQLCommand):
         """
         Distinct
         """
-        print(isinstance(columns, str))
         if isinstance(columns, str):
             self._distinct = sql.SQL("DISTINCT {}").format(sql.Identifier(columns))
         else:
@@ -234,15 +245,12 @@ class Select(SQLCommand):
         Overrides the SQLCommand to_sql method
         """
         table_name = self.table_name
-        columns = get_columns_composed(table_name, pg_config)
+        columns = self.get_columns(table_name, pg_config)
 
         # Construct the join sql
         join = self.get_join()
         if join is not None:
             join_sql = join.sql
-            # Add joined table columns to select
-            for t in join.tables:
-                columns = columns + get_columns_composed(t, pg_config)
         else:
             join_sql = sql.SQL("")
 
