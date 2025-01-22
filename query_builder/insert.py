@@ -4,7 +4,7 @@ Insert query builder
 
 from psycopg2 import sql
 from psycopg2.extras import execute_values
-from query_builder.utilities import get_logger
+from query_builder.logger import get_logger
 from query_builder.command import SQLCommand
 from query_builder.postgres_config import PostgresConfig
 

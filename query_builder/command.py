@@ -3,10 +3,12 @@ Abstract SQL command class
 """
 
 from abc import ABC, abstractmethod
+from typing import List, Dict
 import psycopg2
 from query_builder.postgres_config import PostgresConfig
-from query_builder.utilities import get_logger
+from query_builder.logger import get_logger
 from query_builder import response_formatters
+from query_builder.utilities import ColumnDefinition, get_column_definitions
 
 class SQLCommand(ABC):
     """
@@ -38,6 +40,14 @@ class SQLCommand(ABC):
         """
         raise NotImplementedError
 
+    def get_column_definitions(self, pg_config: PostgresConfig) -> Dict[str, List[ColumnDefinition]]:
+        """
+        Returns a dictionary of table_names mapped to column definitions for this command
+        """
+        col_defs = {}
+        col_defs[self._table_name] = get_column_definitions(self._table_name, pg_config).copy()
+        return col_defs
+        
     def respond_with_decomposed_dict(self):
         """
         Respond to execute() with a dictionary of dictionaries.

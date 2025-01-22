@@ -1,13 +1,14 @@
 """
 Select query builder
 """
-
+from typing import List, Dict
 from psycopg2 import sql
 from query_builder.join import Join
 from query_builder.where import Where
 from query_builder.command import SQLCommand
 from query_builder.postgres_config import PostgresConfig
-from query_builder.utilities import get_columns_composed
+from query_builder.utilities import get_columns_composed, get_column_definitions
+from query_builder.column_definition import ColumnDefinition
 
 
 # pylint: disable=too-many-instance-attributes
@@ -43,8 +44,22 @@ class Select(SQLCommand):
         """Table name"""
         return self._table_name
 
+    def get_column_definitions(self, pg_config) -> Dict[str, List[ColumnDefinition]]:
+        """
+        Returns a dictionary with tablenames (keys) mapped to list of column definition objects.
+        """
+        col_defs = super().get_column_definitions(pg_config)
+        
+        # Add the join table column definitions
+        join = self.get_join()
+        if join is not None:
+            for t in join.tables:
+                col_defs[t] = get_column_definitions(t, pg_config)
+        
+        return col_defs
+
     def get_columns(self, table_name, pg_config):
-        """The columns to use building the query"""
+        """The sql formatted columns to use building the query"""
         columns = get_columns_composed(table_name, pg_config)
 
         # Construct the join sql

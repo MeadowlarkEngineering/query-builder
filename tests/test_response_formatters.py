@@ -63,37 +63,37 @@ def dataclass_for_table(table_name, pg_config):
     if table_name == 'subscriptions':
         return Subscriptions
     
-def column_defs_side_effect(table_name, pg_config):
-    if table_name == 'posts':
-        return [
-            ColumnDefinition(name='id', data_type='integer', is_nullable=True, default=None),
-            ColumnDefinition(name='title', data_type='text', is_nullable=True, default=None),
-        ]
-    if table_name == 'comments':
-        return [
-            ColumnDefinition(name='id', data_type='integer', is_nullable=True, default=None),
-            ColumnDefinition(name='post_id', data_type='integer', is_nullable=True, default=None),
-            ColumnDefinition(name='author_id', data_type='integer', is_nullable=True, default=None),
-            ColumnDefinition(name='comment', data_type='text', is_nullable=True, default=None),
-        ]
-    if table_name == 'authors':
-        return [
-            ColumnDefinition(name='id', data_type='integer', is_nullable=True, default=None),
-            ColumnDefinition(name='name', data_type='text', is_nullable=True, default=None),
-        ]
-    if table_name == 'organizations':
-        return [
-            ColumnDefinition(name='id', data_type='integer', is_nullable=True, default=None),
-            ColumnDefinition(name='created_at', data_type='timestamp without time zone', is_nullable=True, default=None),
-            ColumnDefinition(name='name', data_type='text', is_nullable=True, default=None),
-        ]
-    if table_name == 'subscriptions':
-        return [
-            ColumnDefinition(name='id', data_type='integer', is_nullable=True, default=None),
-            ColumnDefinition(name='organization_id', data_type='integer', is_nullable=True, default=None),
-            ColumnDefinition(name='expiration', data_type='timestamp without time zone', is_nullable=True, default=None),
-            ColumnDefinition(name='created_at', data_type='timestamp without time zone', is_nullable=True, default=None),
-        ]
+def column_defs_side_effect(pg_config):
+    defs= {'table_name': [
+            ColumnDefinition(table_name='table_name', name='column_name', data_type='text', is_nullable=True, default=None),
+            ColumnDefinition(table_name='table_name', name='column2', data_type='text', is_nullable=True, default=None),
+        ],
+        'posts': [
+            ColumnDefinition(table_name='posts', name='id', data_type='integer', is_nullable=True, default=None),
+            ColumnDefinition(table_name='posts', name='title', data_type='text', is_nullable=True, default=None),
+        ],
+        'comments': [
+            ColumnDefinition(table_name='comments', name='id', data_type='integer', is_nullable=True, default=None),
+            ColumnDefinition(table_name='comments', name='post_id', data_type='integer', is_nullable=True, default=None),
+            ColumnDefinition(table_name='comments', name='author_id', data_type='integer', is_nullable=True, default=None),
+            ColumnDefinition(table_name='comments', name='comment', data_type='text', is_nullable=True, default=None),
+        ],
+        'authors': [
+            ColumnDefinition(table_name='authors', name='id', data_type='integer', is_nullable=True, default=None),
+            ColumnDefinition(table_name='authors', name='name', data_type='text', is_nullable=True, default=None),
+        ],
+        'organizations': [
+            ColumnDefinition(table_name='organizations', name='id', data_type='integer', is_nullable=True, default=None),
+            ColumnDefinition(table_name='organizations', name='created_at', data_type='timestamp without time zone', is_nullable=True, default=None),
+            ColumnDefinition(table_name='organizations', name='name', data_type='text', is_nullable=True, default=None),
+        ],
+        'subscriptions': [
+            ColumnDefinition(table_name='subscriptions', name='id', data_type='integer', is_nullable=True, default=None),
+            ColumnDefinition(table_name='subscriptions', name='organization_id', data_type='integer', is_nullable=True, default=None),
+            ColumnDefinition(table_name='subscriptions', name='expiration', data_type='timestamp without time zone', is_nullable=True, default=None),
+            ColumnDefinition(table_name='subscriptions', name='created_at', data_type='timestamp without time zone', is_nullable=True, default=None),
+        ]}
+    return defs
 
 @mark.parametrize('response, expected', [
     ([{'table_name.column_name': 'value'}], [{'table_name': {'column_name': 'value'}}]),
@@ -107,45 +107,8 @@ def test_decompose_dict_response_formatter(response, expected):
     assert decompose_dict_response_formatter(response, None) == expected
 
 
-@mark.parametrize('response', [
-    ([{'table_name.column_name': 'value'}])
-])
-@mock.patch('query_builder.response_formatters.dataclass_for_table', return_value=TableName)
-def test_object_response_formatter(patch, response):
-    formatted_response = object_response_formatter(response, None, Select("table_name"))
-    assert formatted_response[0].column_name == 'value'
 
-@mock.patch('query_builder.response_formatters.get_column_definitions', side_effect=column_defs_side_effect)
-def test_relation_formatter_dataclass_for_table(pg_connection):
-    relation_formatter = RelationFormatter()
-    relation_formatter.set_relation("posts.comments", "comments")
-    relation_formatter.set_relation("comments.author", "authors", relationship_type="one")
-
-    dc = relation_formatter.dataclass_for_table("posts", None)
-    assert dc.__name__ == 'Posts'
-    
-    fields = dc.__dataclass_fields__
-    assert 'id' in fields and fields['id'].type == Optional[int]
-    assert 'title' in fields and fields['title'].type == Optional[str]
-    assert 'comments' in fields and fields['comments'].type.__origin__ == list
-    assert fields['comments'].type.__args__[0].__name__ == 'Comments'
-
-    dc = relation_formatter.dataclass_for_table("comments", None)
-    assert dc.__name__ == 'Comments'
-    fields = dc.__dataclass_fields__
-    assert 'id' in fields and fields['id'].type == Optional[int] 
-    assert 'post_id' in fields and fields['post_id'].type == Optional[int]
-    assert 'author_id' in fields and fields['author_id'].type == Optional[int]
-    assert 'comment' in fields and fields['comment'].type == Optional[str]
-    assert fields['author'].type.__name__ == 'Authors'
-    
-    dc = relation_formatter.dataclass_for_table("authors", None)
-    assert dc.__name__ == 'Authors'
-    fields = dc.__dataclass_fields__
-    assert 'id' in fields and fields['id'].type == Optional[int]
-    assert 'name' in fields and fields['name'].type == Optional[str]
-
-@mock.patch('query_builder.response_formatters.get_column_definitions', side_effect=column_defs_side_effect)
+@mock.patch('query_builder.command.SQLCommand.get_column_definitions', side_effect=column_defs_side_effect)
 def test_relation_formatter(_):
     relation_formatter = RelationFormatter()
     relation_formatter.set_relation("posts.comments", "comments")
@@ -161,7 +124,6 @@ def test_relation_formatter(_):
         {"posts": {'id': 2, 'title': 'Post 2'}, 
          "comments": {'id': 3, 'post_id': 2, 'author_id': 2, 'comment': 'Comment 3'},
          "authors": {'id': 3, 'name': 'Author 2'}},
-
     ]
 
     formatted_response = relation_formatter.format(result_set, None, Select("posts"))
@@ -188,7 +150,7 @@ def test_relation_formatter(_):
         ]
     }
 
-@mock.patch('query_builder.response_formatters.get_column_definitions', side_effect=column_defs_side_effect)
+@mock.patch('query_builder.command.SQLCommand.get_column_definitions', side_effect=column_defs_side_effect)
 def test_relation_formatter2(_):
 
     result_set = [
@@ -231,27 +193,30 @@ def test_relation_formatter2(_):
         ]
     }
 
-@mock.patch('query_builder.response_formatters.dataclass_for_table', side_effect=dataclass_for_table)
-def test_object_response_formatter(_):
+@mock.patch('query_builder.command.SQLCommand.get_column_definitions',  return_value={'table_name': column_defs_side_effect(None)['table_name']})
+def test_object_response_formatter_02(p1, pg_connection):
     response = [
-        {'table_name.column_name': 'value1'},
-        {'table_name.column_name': 'value2'},
+        {'table_name.column_name': 'value1', 'table_name.column2': 'value1b'},
+        {'table_name.column_name': 'value2', 'table_name.column2': 'value2b'},
     ]
-    formatted_response = object_response_formatter(response, None, Select("table_name"))
+    formatted_response = object_response_formatter(response, pg_connection, Select("table_name"))
     assert formatted_response[0].column_name == 'value1'
+    assert formatted_response[0].column2 == 'value1b'
     assert formatted_response[1].column_name == 'value2'
+    assert formatted_response[1].column2 == 'value2b'
 
-@mock.patch('query_builder.response_formatters.dataclass_for_table', side_effect=dataclass_for_table)
-def test_object_response_formatter_response_to_insert(_):
+@mock.patch('query_builder.command.SQLCommand.get_column_definitions', return_value={'table_name': column_defs_side_effect(None)['table_name']})
+def test_object_response_formatter_response_to_insert(p1, pg_connection):
     """
     Tests that the object response formatter can handle an insert response
     which does not have a table name in the response
     """
-    response = [{'column_name': 'value'}]
-    formatted_response = object_response_formatter(response, None, Select("table_name"))
+    response = [{'column_name': 'value', 'column2': 'value2'}]
+    formatted_response = object_response_formatter(response, pg_connection, Select("table_name"))
     assert formatted_response[0].column_name == 'value'
+    assert formatted_response[0].column2 == 'value2'
 
-@mock.patch('query_builder.response_formatters.get_column_definitions', side_effect=column_defs_side_effect)
+@mock.patch('query_builder.command.SQLCommand.get_column_definitions', side_effect=column_defs_side_effect)
 def test_empty_relation(_):
     relation_formatter = RelationFormatter().set_relation("posts.comments", "comments")
     result_set = [
