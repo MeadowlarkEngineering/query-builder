@@ -8,11 +8,12 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10"]
-    container: node:bookworm
 
     services:
       postgres:
         image: postgres:15
+        ports:
+          - 5432:5432
         env:
           POSTGRES_PASSWORD: postgres
         options:
@@ -39,7 +40,7 @@ jobs:
       run: |
         poetry run pytest tests
       env:
-        PGHOST: postgres
+        PGHOST: localhost
         PGUSER: postgres
         PGDATABASE: postgres
         PGPASSWORD: postgres
