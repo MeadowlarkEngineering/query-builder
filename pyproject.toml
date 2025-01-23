@@ -32,6 +32,7 @@ priority = "primary"
 max-line-length = 120
 disable = [
     "R0913", # (too-many-arguments)
+    "R0917", # (too-many-positional-arguments)
     "R0903", # (too-few-public-methods)
     "C0103", # (invalid-name)
     "W0622", # (redefined-builtin)

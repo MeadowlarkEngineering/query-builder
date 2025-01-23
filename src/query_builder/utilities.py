@@ -127,8 +127,9 @@ def data_type_to_field_type(data_type: str, is_nullable: bool = True) -> type:
 
 def make_eq_method(fields_to_compare):
     """
-    Generates an equality method that only compares the fields in fields_to_compare    
+    Generates an equality method that only compares the fields in fields_to_compare
     """
+
     def eq(self, other):
         if not isinstance(other, type(self)):
             return False
@@ -199,6 +200,7 @@ def build_dataclasses(
             # restart the while loop
             continue
 
+        # pylint: disable=invalid-field-call
         base_fields = []  # primitive postgres fields, used for equality comparison
         fields = []  # All fields including postgres and dataclass fields
         for c in class_definitions[class_name]:
