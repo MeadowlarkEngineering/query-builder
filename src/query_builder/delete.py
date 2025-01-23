@@ -3,7 +3,6 @@ Delete query builder
 """
 
 from psycopg2 import sql
-from psycopg2.extras import execute_values
 from query_builder.logger import get_logger
 from query_builder.command import SQLCommand
 from query_builder.postgres_config import PostgresConfig
@@ -69,7 +68,6 @@ class Delete(SQLCommand):
             self._where = self._where.sql_or(Where(where, **kwargs))
         return self
 
-
     def to_sql(self, pg_config: PostgresConfig) -> sql.SQL:
         """
         Overrides the SQLCommand to_sql method
@@ -83,11 +81,8 @@ class Delete(SQLCommand):
             where_sql = sql.SQL("")
 
         # Combine the sql
-        command = sql.SQL(
-            "DELETE FROM {table} {where_sql} RETURNING *"
-        ).format(
-            table=sql.Identifier(table_name),
-            where_sql=where_sql
+        command = sql.SQL("DELETE FROM {table} {where_sql} RETURNING *").format(
+            table=sql.Identifier(table_name), where_sql=where_sql
         )
         return command
 
@@ -97,7 +92,7 @@ class Delete(SQLCommand):
         """
 
         if self._where is not None:
-           return self._where.params
+            return self._where.params
 
         return []
 
@@ -109,7 +104,6 @@ class Delete(SQLCommand):
             transactional: bool Whether to execute the command in a transaction
         """
         command = self.to_sql(pg_config)
-
 
         with pg_config.connect_with_cursor(transactional=transactional) as cursor:
             self.logger.debug(command.as_string(cursor))

@@ -19,6 +19,8 @@ from query_builder.utilities import (
 )
 
 
+# Disable unused-argument warning for pg_config and command. These arguments exist for consistency
+# pylint: disable=unused-argument
 def default_response_formatter(
     result_set: list[dict], pg_config=None, command=None
 ) -> list[dict]:
@@ -28,6 +30,8 @@ def default_response_formatter(
     return [dict(r) for r in result_set]
 
 
+# Disable unused-argument warning for pg_config and command. These arguments exist for consistency
+# pylint: disable=unused-argument
 def decompose_dict_response_formatter(
     result_set: list[dict], pg_config=None, command=None
 ) -> tuple[list[dict], list[str]]:
@@ -40,13 +44,18 @@ def decompose_dict_response_formatter(
 def object_response_formatter(
     result_set: list[dict], pg_config=None, command=None
 ) -> list[object]:
-    
+    """
+    Returns the result set as a list of objects
+    If the result set contains only one table, the objects will be of that type
+    If the result set contains multiple tables, each row will map to an aggregate obejct
+    with one attribute per table in the result set
+    """
     if command is None:
         raise ValueError("Command is required for object_response_formatter")
-    
+
     if pg_config is None:
         raise ValueError("pg_config is required for object_response_formatter")
-    
+
     # Construct the dataclasses for each table in the result set
     table_classes = build_dataclasses(command.get_column_definitions(pg_config))
     decomposed = [decompose_row(r) for r in result_set]
@@ -54,10 +63,7 @@ def object_response_formatter(
     if len(table_classes) == 1:
         # If the result set only contains one table, return a list of objects of that type
         table, datacls = table_classes.popitem()
-        return [
-            datacls(**(row[table] if table in row else row))
-            for row in decomposed
-        ]
+        return [datacls(**(row[table] if table in row else row)) for row in decomposed]
 
     # Construct a Row object with one attribute per table in result set
     Row = namedtuple("Row", table_classes.keys())
@@ -86,10 +92,10 @@ class RelationFormatter:
         When formatting results, a new attribute will be added to an object based on the attribute_name
         The value of the attributed will be an object of the foreign_table
 
-        The attribute name is specified as "tablename.attribute" where tablename is the name of the table 
+        The attribute name is specified as "tablename.attribute" where tablename is the name of the table
         that the attribute belongs to
 
-        The relationship_type is the type of relationship between the tables, either "one" or "many", 
+        The relationship_type is the type of relationship between the tables, either "one" or "many",
         default is "many"
         """
         if "." not in attribute_name:
@@ -102,15 +108,22 @@ class RelationFormatter:
             relationship_type,
         )
         return self
-    
-    def extended_column_defs(self, command, pg_config) -> Dict[str, List[ColumnDefinition]]:
+
+    def extended_column_defs(
+        self, command, pg_config
+    ) -> Dict[str, List[ColumnDefinition]]:
         """
         Return the column definitions for the command with the extended fields added for the relationships
         """
         # A dictionary of table names mapped to a list of column definitions
-        column_defs : Dict[str, List[ColumnDefinition]] = command.get_column_definitions(pg_config)
+        column_defs: Dict[str, List[ColumnDefinition]] = command.get_column_definitions(
+            pg_config
+        )
 
-        for (attribute_table, attribute_name), (foreign_table, relationship_type) in self._relations.items():
+        for (attribute_table, attribute_name), (
+            foreign_table,
+            relationship_type,
+        ) in self._relations.items():
 
             column_defs[attribute_table].append(
                 ColumnDefinition(
@@ -119,12 +132,13 @@ class RelationFormatter:
                     data_type=foreign_table,
                     is_nullable=True,
                     default=None,
-                    is_list=relationship_type == "many"
+                    is_list=relationship_type == "many",
                 )
             )
-        
+
         return column_defs
 
+    # pylint: disable=too-many-locals,too-many-branches,too-many-nested-blocks
     def format(
         self, result_set: list[dict], pg_config=None, command=None
     ) -> list[object]:
@@ -141,7 +155,9 @@ class RelationFormatter:
         )
 
         # Construct the dataclasses for the response
-        self._table_classes = build_dataclasses(self.extended_column_defs(command, pg_config))
+        self._table_classes = build_dataclasses(
+            self.extended_column_defs(command, pg_config)
+        )
 
         obj_cache = []  # a cache of objects that have already been created
         response = []
@@ -153,7 +169,7 @@ class RelationFormatter:
 
                 # If the table is the primary table, add the object to the response
                 # otherwise, cache the object for use in relationships
-                if table == command._table_name:
+                if table == command.table_name:
                     response_obj = next((r for r in response if r == row_obj), None)
                     if response_obj is None:
                         # If the root object is not already in the response, add it
@@ -184,15 +200,14 @@ class RelationFormatter:
                         foreign_obj = next((o for o in obj_cache if o == foreign_obj))
                     else:
                         obj_cache.append(foreign_obj)
-        
-
 
                     # If all attributes of the foreign_obj are None, set the foreign_obj to none
                     if all(v is None for v in row[foreign_table].values()):
                         foreign_obj = None
 
                     if hasattr(row_obj, attribute_name):
-                        # If the attribute already exists, convert it to a list and append the foreign object to the attribute
+                        # If the attribute already exists, convert it to a list and
+                        # append the foreign object to the attribute
                         if relationship_type == "many":
                             if foreign_obj:
                                 getattr(row_obj, attribute_name).append(foreign_obj)
@@ -201,7 +216,11 @@ class RelationFormatter:
                     else:
                         # If the attribute does not exist, create it and set the foreign object as the value
                         if relationship_type == "many":
-                            setattr(row_obj, attribute_name, [foreign_obj] if foreign_obj else [])
+                            setattr(
+                                row_obj,
+                                attribute_name,
+                                [foreign_obj] if foreign_obj else [],
+                            )
                         else:
                             setattr(row_obj, attribute_name, foreign_obj)
         return response

@@ -42,14 +42,16 @@ class Update(SQLCommand):
             self._values[column] = sql.Literal(value)
 
         return self
-    
+
     def increment(self, column: str, value: int = 1):
         """
         Increment a column by a value
         """
         if self._values is None:
             self._values = {}
-        self._values[column] = sql.SQL("{column} + {value}").format(column=sql.Identifier(column), value=sql.Literal(value))
+        self._values[column] = sql.SQL("{column} + {value}").format(
+            column=sql.Identifier(column), value=sql.Literal(value)
+        )
         return self
 
     def where(self, where: Where | None = None, **kwargs):
@@ -108,10 +110,11 @@ class Update(SQLCommand):
         """
         table_name = self.table_name
 
-        columns = [sql.Identifier(c) for c in self.columns]
-
         # Construct the set sql
-        assignments = [sql.SQL("{}={}").format(sql.Identifier(c), self._values[c]) for c in self.columns]
+        assignments = [
+            sql.SQL("{}={}").format(sql.Identifier(c), self._values[c])
+            for c in self.columns
+        ]
         set_sql = sql.SQL("SET {}").format(sql.SQL(",").join(assignments))
 
         # Construct the where sql
@@ -121,12 +124,8 @@ class Update(SQLCommand):
             where_sql = sql.SQL("")
 
         # Combine the sql
-        command = sql.SQL(
-            "UPDATE {table} {set_sql} {where_sql} RETURNING *"
-        ).format(
-            table=sql.Identifier(table_name),
-            set_sql=set_sql,
-            where_sql=where_sql
+        command = sql.SQL("UPDATE {table} {set_sql} {where_sql} RETURNING *").format(
+            table=sql.Identifier(table_name), set_sql=set_sql, where_sql=where_sql
         )
         return command
 
@@ -136,7 +135,7 @@ class Update(SQLCommand):
         """
 
         if self._where is not None:
-           return self._where.params
+            return self._where.params
 
         return []
 
@@ -148,7 +147,6 @@ class Update(SQLCommand):
             transactional: bool Whether to execute the command in a transaction
         """
         command = self.to_sql(pg_config)
-
 
         with pg_config.connect_with_cursor(transactional=transactional) as cursor:
             self.logger.debug(command.as_string(cursor))

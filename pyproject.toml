@@ -4,7 +4,7 @@ version = "0.0.0" # placeholder version (versioning handled by poetry dynamic ve
 description = "Builder Pattern for Querying a postgres database"
 authors = ["Joshua Shapiro <jshapiro@meadowlarkengineering.com>"]
 readme = "README.md"
-packages = [{include = "query_builder"}]
+packages = [{include = "query_builder", from = "src"}]
 
 [tool.poetry-dynamic-versioning]
 enable = true

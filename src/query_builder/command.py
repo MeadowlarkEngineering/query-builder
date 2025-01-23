@@ -10,16 +10,14 @@ from query_builder.logger import get_logger
 from query_builder import response_formatters
 from query_builder.utilities import ColumnDefinition, get_column_definitions
 
+
 class SQLCommand(ABC):
     """
     Abstract SQL command class.  Subclasses must implement the to_sql and execute methods
     """
-    __slots__ = [
-        "logger",
-        "_table_name",
-        "_where",
-        "_response_formatter"]
-    
+
+    __slots__ = ["logger", "_where", "_response_formatter"]
+
     def __init__(self):
         self.logger = get_logger(__name__)
 
@@ -40,14 +38,26 @@ class SQLCommand(ABC):
         """
         raise NotImplementedError
 
-    def get_column_definitions(self, pg_config: PostgresConfig) -> Dict[str, List[ColumnDefinition]]:
+    @property
+    @abstractmethod
+    def table_name(self):
+        """
+        Table name
+        """
+        raise NotImplementedError
+
+    def get_column_definitions(
+        self, pg_config: PostgresConfig
+    ) -> Dict[str, List[ColumnDefinition]]:
         """
         Returns a dictionary of table_names mapped to column definitions for this command
         """
         col_defs = {}
-        col_defs[self._table_name] = get_column_definitions(self._table_name, pg_config).copy()
+        col_defs[self.table_name] = get_column_definitions(
+            self.table_name, pg_config
+        ).copy()
         return col_defs
-        
+
     def respond_with_decomposed_dict(self):
         """
         Respond to execute() with a dictionary of dictionaries.
@@ -92,11 +102,12 @@ class SQLCommand(ABC):
         ]
         """
 
-
         self._response_formatter = response_formatters.object_response_formatter
         return self
 
-    def respond_with_associated_objects(self, relation_formatter: response_formatters.RelationFormatter):
+    def respond_with_associated_objects(
+        self, relation_formatter: response_formatters.RelationFormatter
+    ):
         """
         Respond to execute() with a hierarchical set of objects based on the relations defined in this formatter
         """

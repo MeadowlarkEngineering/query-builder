@@ -1,6 +1,7 @@
 """
 Select query builder
 """
+
 from typing import List, Dict
 from psycopg2 import sql
 from query_builder.join import Join
@@ -11,11 +12,12 @@ from query_builder.utilities import get_columns_composed, get_column_definitions
 from query_builder.column_definition import ColumnDefinition
 
 
-# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-instance-attributes,too-many-public-methods
 class Select(SQLCommand):
     """Select"""
 
     __slots__ = [
+        "_table_name",
         "_join",
         "_distinct",
         "_order_by",
@@ -38,7 +40,6 @@ class Select(SQLCommand):
         self._offset = None
         self._group_by = None
 
-
     @property
     def table_name(self):
         """Table name"""
@@ -49,13 +50,13 @@ class Select(SQLCommand):
         Returns a dictionary with tablenames (keys) mapped to list of column definition objects.
         """
         col_defs = super().get_column_definitions(pg_config)
-        
+
         # Add the join table column definitions
         join = self.get_join()
         if join is not None:
             for t in join.tables:
                 col_defs[t] = get_column_definitions(t, pg_config)
-        
+
         return col_defs
 
     def get_columns(self, table_name, pg_config):
@@ -67,7 +68,7 @@ class Select(SQLCommand):
         if join is not None:
             for t in join.tables:
                 columns = columns + get_columns_composed(t, pg_config)
-        
+
         return columns
 
     def join(self, join: Join | None = None, **kwargs):
@@ -304,7 +305,6 @@ class Select(SQLCommand):
         if self._where is None:
             return []
         return self._where.params
-
 
     def execute(self, pg_config: PostgresConfig, transactional=False):
         """

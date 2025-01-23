@@ -4,7 +4,6 @@ Useful standalone mixins
 
 from typing import Union, Dict
 from dataclasses import make_dataclass, dataclass, field
-from collections import namedtuple
 from datetime import datetime
 from psycopg2 import sql
 from query_builder.postgres_config import PostgresConfig
@@ -13,14 +12,14 @@ from query_builder.column_definition import ColumnDefinition
 TABLE_COLUMN_CACHE = {}
 
 POSTGRES_DATA_TYPES = {
-        "character varying": str,
-        "text": str,
-        "integer": int,
-        "double precision": float,
-        "timestamp without time zone": datetime,
-        "ARRAY": list
-    }
-    
+    "character varying": str,
+    "text": str,
+    "integer": int,
+    "double precision": float,
+    "timestamp without time zone": datetime,
+    "ARRAY": list,
+}
+
 
 def get_columns(table_name, pg_config: PostgresConfig, use_cache=True) -> list[str]:
     """
@@ -101,18 +100,20 @@ def get_columns_composed(
         ]
     )
 
+
 def is_postgres_datatype(data_type: str) -> bool:
     """
     Returns True if the data_type is a postgres data type
     """
     return data_type in POSTGRES_DATA_TYPES
 
+
 def data_type_to_field_type(data_type: str, is_nullable: bool = True) -> type:
     """
     Converts a postgres data type to a python data type
     If data_type is not recognized return None
     """
-    
+
     if data_type in POSTGRES_DATA_TYPES:
         dtype = POSTGRES_DATA_TYPES[data_type]
     else:
@@ -124,20 +125,28 @@ def data_type_to_field_type(data_type: str, is_nullable: bool = True) -> type:
     return dtype
 
 
-# Add an equality method that compares a subset of fields
 def make_eq_method(fields_to_compare):
+    """
+    Generates an equality method that only compares the fields in fields_to_compare    
+    """
     def eq(self, other):
-        if not type(other) == type(self):
+        if not isinstance(other, type(self)):
             return False
-        return all(getattr(self, f[0]) == getattr(other, f[0]) for f in fields_to_compare)
+        return all(
+            getattr(self, f[0]) == getattr(other, f[0]) for f in fields_to_compare
+        )
+
     return eq
-        
-def build_dataclasses(class_definitions: Dict[str, list[ColumnDefinition]]) -> Dict[str, dataclass]:
+
+
+def build_dataclasses(
+    class_definitions: Dict[str, list[ColumnDefinition]]
+) -> Dict[str, dataclass]:
     """
     Generate dataclasses given a dictionary of {class_name: column_definitions}
     Returns a dictionary of {class_name: dataclass}
 
-    This function will construct dataclasses with primitive attributes first. 
+    This function will construct dataclasses with primitive attributes first.
     Classes with complex datatypes (i.e. another class represented in class_definitions) will only be
     created if their dependencies have been resolved. If a class has a complex data field that cannot be resolved,
     it is deferred until all other classes have been constructed.
@@ -150,13 +159,16 @@ def build_dataclasses(class_definitions: Dict[str, list[ColumnDefinition]]) -> D
 
         if class_name in built_classes:
             continue
-        
+
         # If any of the columns are not postgres data types, defer the class
         if not all(is_postgres_datatype(c.data_type) for c in columns):
             complex_classes.append(class_name)
             continue
 
-        fields = [(c.name, data_type_to_field_type(c.data_type, c.is_nullable)) for c in columns]
+        fields = [
+            (c.name, data_type_to_field_type(c.data_type, c.is_nullable))
+            for c in columns
+        ]
         built_classes[class_name] = make_dataclass(class_name.title(), fields)
 
     # Construct the classes with complex data fields
@@ -167,18 +179,19 @@ def build_dataclasses(class_definitions: Dict[str, list[ColumnDefinition]]) -> D
 
         class_name = complex_classes.pop()
 
-        # If any of the columns are not postgres data types and are not in the Dataclass Cache, defer the creation 
+        # If any of the columns are not postgres data types and are not in the Dataclass Cache, defer the creation
         if any(
             (
-                (data_type_to_field_type(c.data_type, c.is_nullable) is None) 
-                and 
-                (c.data_type not in built_classes)
-            ) 
+                (data_type_to_field_type(c.data_type, c.is_nullable) is None)
+                and (c.data_type not in built_classes)
+            )
             for c in class_definitions[class_name]
-            ):
+        ):
             if class_name in deferred_classes:
                 # Break the cycle
-                raise ValueError(f"Could not resolve complex data type for {class_name}")
+                raise ValueError(
+                    f"Could not resolve complex data type for {class_name}"
+                )
             # Note that the class is deferred and try again later
             deferred_classes.append(class_name)
             # Put the class back in the queue
@@ -186,8 +199,8 @@ def build_dataclasses(class_definitions: Dict[str, list[ColumnDefinition]]) -> D
             # restart the while loop
             continue
 
-        base_fields = [] # primitive postgres fields, used for equality comparison
-        fields = [] # All fields including postgres and dataclass fields
+        base_fields = []  # primitive postgres fields, used for equality comparison
+        fields = []  # All fields including postgres and dataclass fields
         for c in class_definitions[class_name]:
             dtype = data_type_to_field_type(c.data_type, c.is_nullable)
 
@@ -195,7 +208,7 @@ def build_dataclasses(class_definitions: Dict[str, list[ColumnDefinition]]) -> D
                 f = (c.name, list[dtype], field(default_factory=list))
             else:
                 f = (c.name, dtype, field(default=c.default))
-            
+
             if is_postgres_datatype(c.data_type):
                 base_fields.append(f)
 
@@ -203,10 +216,14 @@ def build_dataclasses(class_definitions: Dict[str, list[ColumnDefinition]]) -> D
 
         # Construct a base class with all the fields but no equal method
         base_dc = make_dataclass(("Base" + class_name.title()), fields, eq=False)
-        
+
         # Construct the final dataclass with the equality method
-        built_classes[class_name] = dataclass(type(class_name.title(), (base_dc,), {"__eq__": make_eq_method(base_fields)}))
-        
+        built_classes[class_name] = dataclass(
+            type(
+                class_name.title(), (base_dc,), {"__eq__": make_eq_method(base_fields)}
+            )
+        )
+
     return built_classes
 
 
