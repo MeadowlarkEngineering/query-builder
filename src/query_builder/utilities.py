@@ -2,7 +2,7 @@
 Useful standalone mixins
 """
 
-from typing import Union, Dict
+from typing import Union, Dict, List
 from dataclasses import make_dataclass, dataclass, field
 from datetime import datetime
 from psycopg2 import sql
@@ -11,14 +11,37 @@ from query_builder.column_definition import ColumnDefinition
 
 TABLE_COLUMN_CACHE = {}
 
+
 POSTGRES_DATA_TYPES = {
+    "jsonb": Union[Dict, List, str],
+    "boolean": bool,
+    "bytea": bytes,
     "character varying": str,
+    "varchar": str,
+    "char": str,
+    "character": str,
+    "bpchar": str,
     "text": str,
+    "smallint": int,
     "integer": int,
+    "bigint": int,
+    "decimal": float,
+    "numeric": float,
+    "real": float,
     "double precision": float,
+    "smallserial": int,
+    "serial": int,
+    "bigserial": int,
+    "timestamp": datetime,
+    "timestamp with time zone": datetime,
     "timestamp without time zone": datetime,
+    "date": datetime,
+    "time": datetime,
+    "time with time zone": datetime,
+    "time without time zone": datetime,
     "ARRAY": list,
 }
+
 
 
 def get_columns(table_name, pg_config: PostgresConfig, use_cache=True) -> list[str]:
