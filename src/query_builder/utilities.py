@@ -13,7 +13,6 @@ TABLE_COLUMN_CACHE = {}
 
 
 POSTGRES_DATA_TYPES = {
-    "jsonb": Union[Dict, List, str],
     "boolean": bool,
     "bytea": bytes,
     "character varying": str,
@@ -39,7 +38,8 @@ POSTGRES_DATA_TYPES = {
     "time": datetime,
     "time with time zone": datetime,
     "time without time zone": datetime,
-    "ARRAY": list,
+    "ARRAY": List,
+    "jsonb": Union[Dict, List, str],
 }
 
 
