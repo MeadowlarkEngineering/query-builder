@@ -64,17 +64,18 @@ class PostgresConfig:
         - host
         - port (optional)
     """
+
     # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
-        aws_secret_name: str = None,
-        aws_region_name: str = None,
-        dbname: str = None,
-        user: str = None,
-        password: str = None,
-        host: str = None,
-        port: str = None,
-        dsn: str = None,
+        aws_secret_name: str | None = None,
+        aws_region_name: str | None = None,
+        dbname: str | None = None,
+        user: str | None = None,
+        password: str | None = None,
+        host: str | None = None,
+        port: str | None = None,
+        dsn: str | None = None,
     ):
         """Configuration values for the Postgres client."""
         self.dbname = dbname

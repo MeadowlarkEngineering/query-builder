@@ -4,12 +4,12 @@ Select query builder
 
 from typing import List, Dict
 from psycopg2 import sql
-from query_builder.join import Join
-from query_builder.where import Where
-from query_builder.command import SQLCommand
-from query_builder.postgres_config import PostgresConfig
-from query_builder.utilities import get_columns_composed, get_column_definitions
-from query_builder.column_definition import ColumnDefinition
+from sqlark.join import Join
+from sqlark.where import Where
+from sqlark.command import SQLCommand
+from sqlark.postgres_config import PostgresConfig
+from sqlark.utilities import get_columns_composed, get_column_definitions
+from sqlark.column_definition import ColumnDefinition
 
 
 # pylint: disable=too-many-instance-attributes,too-many-public-methods

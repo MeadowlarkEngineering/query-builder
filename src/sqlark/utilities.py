@@ -2,17 +2,28 @@
 Useful standalone mixins
 """
 
-from typing import Union, Dict, List
-from dataclasses import make_dataclass, dataclass, field
+from typing import Union, Dict, List, Tuple
+from dataclasses import make_dataclass, dataclass, field, Field
 from datetime import datetime
 from psycopg2 import sql
-from query_builder.postgres_config import PostgresConfig
-from query_builder.column_definition import ColumnDefinition
+from sqlark.postgres_config import PostgresConfig
+from sqlark.column_definition import ColumnDefinition
 
-TABLE_COLUMN_CACHE = {}
+TABLE_COLUMN_CACHE: Dict = {}
 
+PYTHON_DATA_TYPE = Union[
+    bool,
+    bytes,
+    str,
+    int,
+    float,
+    datetime,
+    List,
+    Dict,
+    None,
+]
 
-POSTGRES_DATA_TYPES = {
+POSTGRES_DATA_TYPES: Dict[str, object] = {
     "boolean": bool,
     "bytea": bytes,
     "character varying": str,
@@ -41,7 +52,6 @@ POSTGRES_DATA_TYPES = {
     "ARRAY": List,
     "jsonb": Union[Dict, List, str],
 }
-
 
 
 def get_columns(table_name, pg_config: PostgresConfig, use_cache=True) -> list[str]:
@@ -74,7 +84,7 @@ def get_column_definitions(
         command = sql.SQL(
             """
             SELECT table_name, column_name name, data_type, is_nullable, column_default default
-            FROM information_schema.columns 
+            FROM information_schema.columns
             WHERE table_name=%s
             """
         )
@@ -110,16 +120,11 @@ def get_columns_composed(
     raises:
         ValueError: If the columns could not be retrieved
     """
-    format_method = lambda x: sql.SQL("{}.{} as {}").format(
-        sql.Identifier(table_name),
-        sql.Identifier(x),
-        sql.Identifier(f"{table_name}.{x}"),
-    )
 
     return sql.Composed(
         [
-            format_method(c)
-            for c in get_columns(table_name, pg_config, use_cache=use_cache)
+            c.format_with_alias()
+            for c in get_column_definitions(table_name, pg_config, use_cache=use_cache)
         ]
     )
 
@@ -131,7 +136,7 @@ def is_postgres_datatype(data_type: str) -> bool:
     return data_type in POSTGRES_DATA_TYPES
 
 
-def data_type_to_field_type(data_type: str, is_nullable: bool = True) -> type:
+def data_type_to_field_type(data_type: str, is_nullable: bool = True) -> object | None:
     """
     Converts a postgres data type to a python data type
     If data_type is not recognized return None
@@ -148,7 +153,7 @@ def data_type_to_field_type(data_type: str, is_nullable: bool = True) -> type:
     return dtype
 
 
-def make_eq_method(fields_to_compare):
+def make_eq_method(fields_to_compare: List[Tuple]):
     """
     Generates an equality method that only compares the fields in fields_to_compare
     """
@@ -164,8 +169,8 @@ def make_eq_method(fields_to_compare):
 
 
 def build_dataclasses(
-    class_definitions: Dict[str, list[ColumnDefinition]]
-) -> Dict[str, dataclass]:
+    class_definitions: Dict[str, list[ColumnDefinition]],
+) -> Dict[str, type]:
     """
     Generate dataclasses given a dictionary of {class_name: column_definitions}
     Returns a dictionary of {class_name: dataclass}
@@ -180,7 +185,6 @@ def build_dataclasses(
     built_classes = {}
     # Construct the classes with no complex data fields first
     for class_name, columns in class_definitions.items():
-
         if class_name in built_classes:
             continue
 
@@ -200,7 +204,6 @@ def build_dataclasses(
     # until all other classes have been constructed
     deferred_classes = []
     while len(complex_classes) > 0:
-
         class_name = complex_classes.pop()
 
         # If any of the columns are not postgres data types and are not in the Dataclass Cache, defer the creation
@@ -229,15 +232,25 @@ def build_dataclasses(
         for c in class_definitions[class_name]:
             dtype = data_type_to_field_type(c.data_type, c.is_nullable)
 
+            f: Tuple[str, object | List[object], Field]
+
             if c.is_list:
-                f = (c.name, list[dtype], field(default_factory=list))
+                f = (
+                    c.name,
+                    list[dtype],  # type: ignore
+                    field(default_factory=list),  # type: ignore
+                )
             else:
-                f = (c.name, dtype, field(default=c.default))
+                f = (
+                    c.name,
+                    dtype,
+                    field(default=c.default),  # type: ignore
+                )
 
             if is_postgres_datatype(c.data_type):
-                base_fields.append(f)
+                base_fields.append(f)  # type: ignore
 
-            fields.append(f)
+            fields.append(f)  # type: ignore
 
         # Construct a base class with all the fields but no equal method
         base_dc = make_dataclass(("Base" + class_name.title()), fields, eq=False)
@@ -252,12 +265,12 @@ def build_dataclasses(
     return built_classes
 
 
-def decompose_row(d: dict):
+def decompose_row(d: dict) -> Dict[str, Dict]:
     """
     Decomposes the keys of a dictionary that have the format "table_name.column_name"
     into a dictionary {table_name: {column_name: value, ...}, table_name2: {column_name: value, ...}, ...}
     """
-    result_d = {}
+    result_d: Dict[str, dict] = {}
     for k, v in d.items():
         if "." in k:
             table, column = k.split(".")

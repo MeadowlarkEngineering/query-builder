@@ -1,12 +1,14 @@
 """
-Defines a class for aggregating SQL WHERE clauses 
+Defines a class for aggregating SQL WHERE clauses
 """
+
 from psycopg2 import sql
+from sqlark.utilities import PYTHON_DATA_TYPE
 
 
 class Where:
     """
-    Use Where to create and aggregate where clauses.  
+    Use Where to create and aggregate where clauses.
 
     example usage:
 
@@ -22,7 +24,7 @@ class Where:
     def __init__(self, *args, **kwargs):
         """
         Initialize with 2 or 4 or kwargs
-        
+
         2 argument initializer
         @param clause : sql.Composable
         @param list   : values
@@ -48,29 +50,36 @@ class Where:
             self.sql = args[0].sql
             self.params = args[0].params
 
-        elif 'table' in kwargs and 'column' in kwargs and 'operator' in kwargs and 'value' in kwargs:
+        elif (
+            "table" in kwargs
+            and "column" in kwargs
+            and "operator" in kwargs
+            and "value" in kwargs
+        ):
             self.__init__from_table_column_operator_value(**kwargs)
 
         else:
             raise AttributeError("Unknown arguments when initializing Where")
 
-    def __init__from_table_column_operator_value(self, table: str, column: str, operator: str, value: any):
+    def __init__from_table_column_operator_value(
+        self, table: str, column: str, operator: str, value: PYTHON_DATA_TYPE
+    ):
         """
-        Each where clause establishes a criteria where a particular column of a specific table is evaluated 
-        against a value using an operator 
+        Each where clause establishes a criteria where a particular column of a specific table is evaluated
+        against a value using an operator
         """
         self.sql = sql.SQL("{table}.{column} {operator} {placeholder}").format(
             table=sql.Identifier(table),
             column=sql.Identifier(column),
             operator=sql.SQL(operator),
-            placeholder=sql.Placeholder()
+            placeholder=sql.Placeholder(),
         )
         self.params = [value]
 
     def sql_and(self, *args, **kwargs):
         """
         Append another where clause onto this where clause using AND returning a Compounded where clause
-        
+
         w = Where(table='posts', column='created_at', operator='>', value='2023-04-18').sql_and(
                 table='posts', column='author', operator='=', value='Clark Kent'
             )

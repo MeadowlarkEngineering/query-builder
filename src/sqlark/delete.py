@@ -3,10 +3,10 @@ Delete query builder
 """
 
 from psycopg2 import sql
-from query_builder.logger import get_logger
-from query_builder.command import SQLCommand
-from query_builder.postgres_config import PostgresConfig
-from query_builder.where import Where
+from sqlark.logger import get_logger
+from sqlark.command import SQLCommand
+from sqlark.postgres_config import PostgresConfig
+from sqlark.where import Where
 
 logger = get_logger(__name__)
 

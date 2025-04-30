@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "query-builder"
+name = "sqlark"
 version = "0.0.0" # placeholder version (versioning handled by poetry dynamic versioning)
-description = "Builder Pattern for Querying a postgres database"
+description = "A lightweight Non-ORM with a builder pattern for querying a postgres database"
 authors = ["Joshua Shapiro <jshapiro@meadowlarkengineering.com>"]
 readme = "README.md"
-packages = [{include = "query_builder", from = "src"}]
+packages = [{include = "sqlark", from = "src"}]
 
 [tool.poetry-dynamic-versioning]
 enable = true
@@ -13,7 +13,7 @@ style = "semver"
 bump = true
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 psycopg2-binary = "^2.9.5"
 boto3 = "^1.35.29"
 
@@ -22,6 +22,7 @@ pytest = "^7.2.1"
 pylint = "^3.0.4"
 pytest-postgresql = "^4.1.1"
 pytest-mock = "^3.11.1"
+pre-commit = "^4.1.0"
 
 
 [[tool.poetry.source]]

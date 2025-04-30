@@ -5,10 +5,10 @@ Abstract SQL command class
 from abc import ABC, abstractmethod
 from typing import List, Dict
 import psycopg2
-from query_builder.postgres_config import PostgresConfig
-from query_builder.logger import get_logger
-from query_builder import response_formatters
-from query_builder.utilities import ColumnDefinition, get_column_definitions
+from sqlark.postgres_config import PostgresConfig
+from sqlark.logger import get_logger
+from sqlark import response_formatters
+from sqlark.utilities import ColumnDefinition, get_column_definitions
 
 
 class SQLCommand(ABC):

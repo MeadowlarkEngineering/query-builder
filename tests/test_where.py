@@ -1,7 +1,6 @@
 import pytest
 from psycopg2 import sql
-from query_builder.where import Where
-from query_builder.postgres_config import PostgresConfig
+from sqlark.where import Where
 
 
 def test_initialize_with_kwargs(pg_connection):
@@ -12,13 +11,13 @@ def test_initialize_with_kwargs(pg_connection):
 
 def test_raises_with_missing_kwargs():
     with pytest.raises(AttributeError):
-        w = Where(column="author", operator="=", value="Clark Kent")
+        Where(column="author", operator="=", value="Clark Kent")
     with pytest.raises(AttributeError):
-        w = Where(table="posts", operator="=", value="Clark Kent")
+        Where(table="posts", operator="=", value="Clark Kent")
     with pytest.raises(AttributeError):
-        w = Where(table="posts", column="author", value="Clark Kent")
+        Where(table="posts", column="author", value="Clark Kent")
     with pytest.raises(AttributeError):
-        w = Where(table="posts", column="author", operator="=")
+        Where(table="posts", column="author", operator="=")
 
 
 def test_initialize_with_sql_values(pg_connection):

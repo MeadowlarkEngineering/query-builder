@@ -4,10 +4,9 @@ Count query builder
 
 from typing import Dict, List
 from psycopg2 import sql
-from query_builder.column_definition import ColumnDefinition
-from query_builder.select import Select
-from query_builder.postgres_config import PostgresConfig
-from query_builder.utilities import get_column_definitions
+from sqlark.column_definition import ColumnDefinition
+from sqlark.select import Select
+from sqlark.postgres_config import PostgresConfig
 
 
 class Count(Select):
@@ -21,7 +20,7 @@ class Count(Select):
                 sql.Identifier(f"{table_name}.{count_column_name}")
             )
         ]
-        self._group_by_columns = []
+        self._group_by_columns: List[ColumnDefinition] = []
 
     def get_column_definitions(
         self, pg_config: PostgresConfig
@@ -34,22 +33,22 @@ class Count(Select):
             self._table_name: [
                 ColumnDefinition(
                     table_name=self._table_name,
-                    name=self._count_column_name,
+                    name="*",
                     data_type="integer",
                     is_nullable=False,
                     default=None,
+                    function="COUNT",
+                    alias=self._count_column_name,
                 )
             ]
         }
 
         # Add any group by columns
-        for table, column in self._group_by_columns:
-            defs = get_column_definitions(table, pg_config)
-            col_def = next((d for d in defs if d.name == column), None)
-            if table in col_definitions:
-                col_definitions[table].append(col_def)
-            else:
-                col_definitions[table] = [col_def]
+        for col_def in self._group_by_columns:
+            if col_def.table_name in col_definitions:
+                col_definitions[col_def.table_name].append(col_def)
+            elif col_def:
+                col_definitions[col_def.table_name] = [col_def]
 
         return col_definitions
 
@@ -67,18 +66,22 @@ class Count(Select):
 
         for col in columns:
             # Append a tuple (table, column-name) to the group_by_columns list
-            self._group_by_columns.append(
-                (self._table_name if table is None else table, col)
-            )
 
             # Append the column to the select columns
-            self._columns.append(
-                sql.SQL("{}.{} as {}").format(
-                    sql.Identifier(self._table_name if table is None else table),
-                    sql.Identifier(col),
-                    sql.Identifier(f"{self._table_name}.{col}"),
+            if isinstance(col, ColumnDefinition):
+                self._group_by_columns.append(col)
+                self._columns.append(col.format_with_alias())
+            else:
+                col_def = ColumnDefinition(
+                    table_name=table or self._table_name,
+                    name=col,
+                    data_type="text",
+                    is_nullable=True,
+                    default=None,
                 )
-            )
+                self._group_by_columns.append(col_def)
+                self._columns.append(col_def.format_with_alias())
+
         return self
 
     @property
@@ -90,11 +93,7 @@ class Count(Select):
             # Format the group by clause from the group_by_columns tuples (table, column)
             return sql.SQL("GROUP BY {}").format(
                 sql.SQL(",").join(
-                    sql.SQL("{}.{}").format(
-                        sql.Identifier(c[0]),
-                        sql.Identifier(c[1]),
-                    )
-                    for c in self._group_by_columns
+                    coldef.format_without_alias() for coldef in self._group_by_columns
                 )
             )
 
