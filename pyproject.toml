@@ -14,8 +14,8 @@ bump = true
 
 [tool.poetry.dependencies]
 python = "^3.9"
-psycopg2-binary = "^2.9.5"
-boto3 = "^1.35.29"
+psycopg2-binary = "^2.9.11"
+boto3 = "^1.42.14"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.1"
